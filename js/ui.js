@@ -1,5 +1,46 @@
 // 対戦画面の描画とタップ操作。ルール判定は rules.js、通信は main.js 側が受け持つ。
 import * as R from "./rules.js";
+import { se, bgm, getSettings, setBgmOn, setSeOn } from "./sound.js";
+
+// 直前の状態との違いから、鳴らす効果音を決める（相手の操作でも鳴るように）
+const SE_ORDER = ["spell", "summon", "buff", "hit", "hitLeader", "death", "heal", "shuffle", "draw", "myTurn", "turn"];
+
+function newLogLines(prev, cur) {
+  const last = prev[prev.length - 1];
+  if (last === undefined) return cur;
+  const i = cur.lastIndexOf(last);
+  return i < 0 ? cur.slice(-3) : cur.slice(i + 1);
+}
+
+function diffSounds(prev, cur, v) {
+  const out = new Set();
+  for (const l of newLogLines(prev.log, cur.log)) {
+    if (l.includes("を使った")) out.add("spell");
+    if (l.includes("を出した")) out.add("summon");
+    if (l.includes("引き直した")) out.add("shuffle");
+  }
+  for (const s of ["p1", "p2"]) {
+    const P = prev.players[s];
+    const C = cur.players[s];
+    if (C.hp < P.hp) out.add("hitLeader");
+    if (C.hp > P.hp) out.add("heal");
+    const before = new Map(P.board.map((u) => [u.uid, u]));
+    const now = new Set(C.board.map((u) => u.uid));
+    for (const u of C.board) {
+      const p = before.get(u.uid);
+      if (p && u.hp < p.hp) out.add("hit");
+      if (p && (u.atk > p.atk || u.maxHp > p.maxHp)) out.add("buff");
+    }
+    for (const uid of before.keys()) if (!now.has(uid)) out.add("death");
+  }
+  const meP = prev.players[v.bottom];
+  const meC = cur.players[v.bottom];
+  if (cur.phase === "play" && meC.handCount > meP.handCount && !v.isSpectator) out.add("draw");
+  if (cur.turnStarted && (!prev.turnStarted || prev.active !== cur.active)) {
+    out.add(!v.isSpectator && cur.active === v.bottom ? "myTurn" : "turn");
+  }
+  return SE_ORDER.filter((k) => out.has(k));
+}
 
 export const esc = (s) =>
   String(s ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]);
@@ -31,6 +72,7 @@ export function createGameUI(root, h) {
   let mullKey = "";
   let lastLog = "";
   let toastTimer = 0;
+  let prevPub = null;
 
   const toastEl = document.createElement("div");
   toastEl.className = "toast";
@@ -61,7 +103,37 @@ export function createGameUI(root, h) {
       if (lastLog) toast(last);
       lastLog = last;
     }
+    playSounds(v);
     draw();
+  }
+
+  function playSounds(v) {
+    const pub = v.pub;
+    const prev = prevPub;
+    prevPub = R.clone(pub);
+    if (!prev || prev.gameId !== pub.gameId) {
+      se("start");
+    } else {
+      diffSounds(prev, pub, v).forEach((k, i) => se(k, i * 0.09));
+      if (!prev.winner && pub.winner) {
+        const win = pub.winner === "draw" || v.isSpectator || v.mode === "local" || pub.winner === v.bottom;
+        se(win ? "win" : "lose", 0.3);
+      }
+    }
+    // BGM：決着したら止めてジングル、どちらかの体力が5以下ならピンチ版
+    if (pub.winner) bgm(null);
+    else if (pub.phase === "play" && (pub.players.p1.hp <= 5 || pub.players.p2.hp <= 5)) bgm("pinch");
+    else bgm("battle");
+  }
+
+  function error(text) {
+    se("error");
+    toast(text);
+  }
+
+  // 対戦画面を離れたら次の対戦で「開始」の音が鳴るようにする
+  function reset() {
+    prevPub = null;
   }
 
   function targetsNow() {
@@ -163,11 +235,19 @@ export function createGameUI(root, h) {
     }
     if (modal && modal.kind === "menu") {
       return `<div class="overlay" data-act="close"><div class="panel">
+        ${soundToggles()}
         ${v.canSurrender ? '<button class="btn danger" data-act="surrender">降参する</button>' : ""}
         <button class="btn" data-act="exit">タイトルへ戻る</button>
         <button class="btn" data-act="close">閉じる</button></div></div>`;
     }
     return "";
+  }
+
+  function soundToggles() {
+    const s = getSettings();
+    return `<div class="toggles">
+      <button class="btn" data-act="tg-bgm">BGM：${s.bgm ? "ON" : "OFF"}</button>
+      <button class="btn" data-act="tg-se">効果音：${s.se ? "ON" : "OFF"}</button></div>`;
   }
 
   function cardModal() {
@@ -235,7 +315,14 @@ export function createGameUI(root, h) {
       // パネルの内側をタップしても閉じないようにする
       if (act === "close" && el.classList.contains("overlay") && e.target !== el) return;
       e.stopPropagation();
+      if (!["play", "end", "mull-ok"].includes(act)) se("tap");
       switch (act) {
+        case "tg-bgm":
+          setBgmOn(!getSettings().bgm);
+          break;
+        case "tg-se":
+          setSeOn(!getSettings().se);
+          break;
         case "close":
           modal = null;
           break;
@@ -282,6 +369,7 @@ export function createGameUI(root, h) {
     if (el.dataset.mull !== undefined) {
       const i = Number(el.dataset.mull);
       mull.has(i) ? mull.delete(i) : mull.add(i);
+      se("select");
       draw();
       return;
     }
@@ -300,6 +388,7 @@ export function createGameUI(root, h) {
     }
 
     if (el.dataset.hand !== undefined) {
+      se("tap");
       sel = null;
       const seat = el.dataset.seat;
       const idx = Number(el.dataset.hand);
@@ -314,11 +403,13 @@ export function createGameUI(root, h) {
       if (!u) return;
       if (seat === v.bottom && v.canAct && u.canAttack && u.atk > 0 && !(sel && sel.uid === u.uid)) {
         if (R.attackTargets(v.pub, seat, u.uid).length) {
+          se("select");
           sel = { type: "unit", uid: u.uid };
           draw();
           return;
         }
       }
+      se("tap");
       sel = null;
       modal = { kind: "card", id: u.id, unit: u, handIdx: null };
       draw();
@@ -335,11 +426,12 @@ export function createGameUI(root, h) {
     modal = null;
     const chk = R.playable(view.pub, { hand: view.hands[view.bottom], deck: [] }, view.bottom, idx);
     if (!chk.ok) {
-      toast(chk.reason);
+      error(chk.reason);
       draw();
       return;
     }
     if (chk.targets.length) {
+      se("select");
       sel = { type: "target", idx, targets: chk.targets };
       draw();
       return;
@@ -347,5 +439,5 @@ export function createGameUI(root, h) {
     h.onPlay(idx, null);
   }
 
-  return { render, toast };
+  return { render, toast, error, reset };
 }

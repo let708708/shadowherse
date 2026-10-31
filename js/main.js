@@ -1,10 +1,18 @@
 // 画面の切り替えと全体の流れ。1台で遊ぶモードとオンライン対戦の両方を受け持つ。
 import * as R from "./rules.js";
 import { createGameUI, esc } from "./ui.js";
+import { initAudio, bgm, se, getSettings, setBgmOn, setSeOn } from "./sound.js";
 
 const $ = (s) => document.querySelector(s);
 const SCREENS = ["title", "local", "lobby", "game"];
-const show = (name) => SCREENS.forEach((s) => ($("#screen-" + s).hidden = s !== name));
+function show(name) {
+  SCREENS.forEach((s) => ($("#screen-" + s).hidden = s !== name));
+  // 対戦画面の BGM は ui.js が状況に合わせて決める
+  if (name !== "game") {
+    bgm("menu");
+    ui.reset();
+  }
+}
 
 const store = {
   get(k, d = "") {
@@ -387,7 +395,7 @@ function act(fn, { anyTime = false } = {}) {
     commit(p, m);
     refresh();
   } catch (e) {
-    ui.toast(e.message);
+    ui.error(e.message);
   }
 }
 
@@ -415,7 +423,7 @@ function onMulligan(indices) {
     net.writeSetup(O.code, seat, p.players[seat], m).catch(netError);
     refresh();
   } catch (e) {
-    ui.toast(e.message);
+    ui.error(e.message);
   }
 }
 
@@ -520,7 +528,30 @@ $("#btn-local-back").addEventListener("click", showTitle);
 
 // ================= 起動 =================
 
+// ---- 音の設定（タイトル画面） ----
+
+function renderSoundToggles() {
+  const s = getSettings();
+  $("#tg-bgm").textContent = `BGM：${s.bgm ? "ON" : "OFF"}`;
+  $("#tg-se").textContent = `効果音：${s.se ? "ON" : "OFF"}`;
+}
+$("#tg-bgm").addEventListener("click", () => {
+  setBgmOn(!getSettings().bgm);
+  renderSoundToggles();
+});
+$("#tg-se").addEventListener("click", () => {
+  setSeOn(!getSettings().se);
+  renderSoundToggles();
+});
+
+// 対戦画面の外のボタンにもタップ音をつける
+document.addEventListener("click", (e) => {
+  if (e.target.closest(".screen .btn, .deck")) se("tap");
+});
+
 async function boot() {
+  initAudio();
+  renderSoundToggles();
   const [cards, decks] = await Promise.all([
     fetch("data/cards.json").then((r) => r.json()),
     fetch("data/decks.json").then((r) => r.json()),
