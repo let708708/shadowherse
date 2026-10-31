@@ -1,0 +1,34 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>audio check</title>
+<iframe id="f" src="../index.html" style="width:390px;height:844px;border:0"></iframe>
+<script>
+// タイトル画面をタップして、BGM が実際に鳴っているか（再生位置と音量）を記録する
+const f = document.getElementById("f");
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+const log = (m) => fetch("/__log", { method: "POST", body: "audio: " + m }).catch(() => {});
+log("page loaded");
+window.addEventListener("error", (e) => log("ERROR " + e.message));
+f.onload = () => run().catch((e) => log("FAIL " + e.message + " / finished"));
+async function run() {
+  const w = f.contentWindow;
+  await wait(1500);
+  log("iframe ready");
+  const snd = { audioDebug: () => w.__shAudio() };
+  log("before tap " + JSON.stringify(snd.audioDebug()));
+  const btn = w.document.querySelector("#tg-se"); // 害のないボタンを本物のクリックのように押す
+  btn.dispatchEvent(new w.PointerEvent("pointerdown", { bubbles: true }));
+  btn.dispatchEvent(new w.PointerEvent("pointerup", { bubbles: true }));
+  btn.click();
+  btn.click(); // 効果音の設定を元に戻す
+  let peak = 0;
+  for (let i = 0; i < 20; i++) {
+    await wait(200);
+    const d = snd.audioDebug();
+    peak = Math.max(peak, d.level);
+    if (i % 5 === 4) log(JSON.stringify(d));
+  }
+  log("peak " + peak.toFixed(3) + (peak > 0.01 ? " OK: BGM is producing sound" : " NG: silent"));
+  log("finished");
+}
+</script>

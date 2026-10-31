@@ -20,7 +20,7 @@ const store = {
 };
 
 const settings = { bgm: store.get("sh_bgm", "1") === "1", se: store.get("sh_se", "1") === "1" };
-const VOL = { master: 0.8, bgm: 0.24, se: 0.55 };
+const VOL = { master: 0.9, bgm: 0.45, se: 0.7 };
 
 let ctx = null;
 let bgmBus, seBus, noiseBuf;
@@ -30,17 +30,52 @@ let current = null;
 // ---------- 初期化 ----------
 
 export function initAudio() {
+  // iPhone の Safari は touchend / click の中でしか音声を有効にできないので、複数のイベントで試す
   const unlock = () => {
     ensureCtx();
-    if (ctx && ctx.state === "suspended") ctx.resume();
+    if (!ctx) return;
+    setSessionPlayback();
+    if (ctx.state !== "running") ctx.resume().catch(() => {});
+    // 無音を1回鳴らすと iOS で確実に音声が有効になる
+    try {
+      const b = ctx.createBufferSource();
+      b.buffer = ctx.createBuffer(1, 1, 22050);
+      b.connect(ctx.destination);
+      b.start(0);
+    } catch {
+      /* 無視 */
+    }
   };
-  for (const ev of ["pointerdown", "touchend", "keydown"]) document.addEventListener(ev, unlock, { passive: true });
+  for (const ev of ["touchend", "click", "pointerup", "pointerdown", "keydown"]) {
+    document.addEventListener(ev, unlock, { passive: true, capture: true });
+  }
   document.addEventListener("visibilitychange", () => {
     if (!ctx) return;
     if (document.hidden) ctx.suspend();
-    else ctx.resume();
+    else ctx.resume().catch(() => {});
   });
 }
+
+// iOS 17 以降：マナーモードのスイッチに関係なく、音楽アプリと同じように鳴らす
+function setSessionPlayback() {
+  try {
+    if (navigator.audioSession && (settings.bgm || settings.se)) navigator.audioSession.type = "playback";
+  } catch {
+    /* 対応していないブラウザでは何もしない */
+  }
+}
+
+// テスト用：音声の状態と、いま出ている音の大きさ
+let analyser = null;
+export function audioDebug() {
+  if (!ctx) return { state: "none", song: wantSong, level: 0 };
+  const a = new Float32Array(analyser.fftSize);
+  analyser.getFloatTimeDomainData(a);
+  let peak = 0;
+  for (const x of a) peak = Math.max(peak, Math.abs(x));
+  return { state: ctx.state, song: current ? current.name : null, step: current ? current.step : -1, level: peak };
+}
+window.__shAudio = audioDebug;
 
 function ensureCtx() {
   if (ctx) return;
@@ -52,6 +87,9 @@ function ensureCtx() {
   const comp = ctx.createDynamicsCompressor();
   master.connect(comp);
   comp.connect(ctx.destination);
+  analyser = ctx.createAnalyser();
+  analyser.fftSize = 2048;
+  comp.connect(analyser);
   bgmBus = ctx.createGain();
   bgmBus.gain.value = settings.bgm ? VOL.bgm : 0;
   bgmBus.connect(master);
@@ -71,6 +109,7 @@ export const getSettings = () => ({ ...settings });
 export function setBgmOn(on) {
   settings.bgm = on;
   store.set("sh_bgm", on ? "1" : "0");
+  setSessionPlayback();
   if (bgmBus) bgmBus.gain.setTargetAtTime(on ? VOL.bgm : 0, ctx.currentTime, 0.1);
 }
 
