@@ -1,0 +1,14 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>online test</title>
+<style>body { margin: 0; display: flex; } iframe { width: 400px; height: 860px; border: 0; }</style>
+<!-- 3人分を別オリジン（別ポート）で開き、ログイン情報が混ざらないようにする -->
+<iframe id="host" src="http://127.0.0.1:8771/tools/online-agent.html?role=host"></iframe>
+<iframe id="guest" src="http://127.0.0.1:8772/tools/online-agent.html?role=guest"></iframe>
+<iframe id="watch" src="http://127.0.0.1:8773/tools/online-agent.html?role=watch"></iframe>
+<script>
+window.addEventListener("message", (e) => {
+  if (!e.data || !e.data.code) return;
+  for (const id of ["guest", "watch"]) document.getElementById(id).contentWindow.postMessage({ code: e.data.code }, "*");
+});
+</script>

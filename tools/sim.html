@@ -1,0 +1,90 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>rules simulation</title>
+<pre id="out">running</pre>
+<script type="module">
+// ルールの自動テスト：ランダムな手で何百回も対戦させ、例外や不正な状態がないか確かめる
+import * as R from "../js/rules.js";
+const out = document.getElementById("out");
+const cards = await (await fetch("../data/cards.json")).json();
+const decks = await (await fetch("../data/decks.json")).json();
+R.loadCards(cards.cards);
+const pick = (a) => a[Math.floor(Math.random() * a.length)];
+const stats = { games: 0, turns: 0, winners: {}, errors: [], plays: 0, attacks: 0 };
+
+function check(pub, priv) {
+  for (const s of ["p1", "p2"]) {
+    const p = pub.players[s];
+    if (p.board.length > 5) throw new Error("board over 5");
+    if (p.board.some((u) => u.hp <= 0)) throw new Error("dead unit on board");
+    if (priv[s].hand.length > 9) throw new Error("hand over 9");
+    if (p.handCount !== priv[s].hand.length) throw new Error("handCount mismatch " + s);
+    if (p.deckCount !== priv[s].deck.length) throw new Error("deckCount mismatch " + s);
+    if (p.pp < 0) throw new Error("pp negative");
+  }
+  // Firebase を通したのと同じ形（JSON）に変換しても壊れないこと
+  const round = R.normPub(JSON.parse(JSON.stringify(pub)));
+  if (JSON.stringify(round.players) !== JSON.stringify(pub.players)) throw new Error("json roundtrip differs");
+}
+
+for (let g = 0; g < 400; g++) {
+  try {
+    const first = Math.random() < 0.5 ? "p1" : "p2";
+    const pub = R.newGame({ names: { p1: "A", p2: "B" }, first, gameId: "g" + g });
+    const priv = {};
+    for (const s of ["p1", "p2"]) priv[s] = R.deal(pub, s, R.deckList(pick(decks)));
+    if (priv[first].hand.length !== 3 || priv[R.other(first)].hand.length !== 4) throw new Error("start hand size");
+    for (const s of ["p1", "p2"]) R.mulligan(pub, priv[s], s, Math.random() < 0.5 ? [0, 1] : []);
+    R.beginPlay(pub);
+    R.startTurn(pub, priv[pub.active], pub.active);
+    let guard = 0;
+    while (!pub.winner && guard++ < 200) {
+      const s = pub.active;
+      // 出せるカードを適当に出す
+      for (let k = 0; k < 6; k++) {
+        const idxs = priv[s].hand.map((_, i) => i).filter((i) => R.playable(pub, priv[s], s, i).ok);
+        if (!idxs.length || pub.winner) break;
+        const i = pick(idxs);
+        const chk = R.playable(pub, priv[s], s, i);
+        R.playCard(pub, priv[s], s, i, chk.targets.length ? pick(chk.targets) : null);
+        stats.plays++;
+        check(pub, priv);
+      }
+      // 攻撃できるフォロワーで攻撃
+      for (const u of [...pub.players[s].board]) {
+        if (pub.winner) break;
+        const t = R.attackTargets(pub, s, u.uid);
+        if (t.length) {
+          R.attack(pub, s, u.uid, pick(t));
+          stats.attacks++;
+          check(pub, priv);
+        }
+      }
+      if (pub.winner) break;
+      R.endTurn(pub, s);
+      R.startTurn(pub, priv[pub.active], pub.active);
+      check(pub, priv);
+      stats.turns++;
+    }
+    if (!pub.winner) throw new Error("game did not end");
+    stats.winners[pub.winner] = (stats.winners[pub.winner] || 0) + 1;
+    stats.games++;
+  } catch (e) {
+    stats.errors.push(`game ${g}: ${e.message}\n${e.stack}`);
+    if (stats.errors.length > 5) break;
+  }
+}
+// ガードのルール確認
+{
+  const pub = R.newGame({ names: { p1: "A", p2: "B" }, first: "p1", gameId: "x" });
+  pub.phase = "play"; pub.turnStarted = true;
+  pub.players.p1.board = [{ uid: "a", id: "s1-01", atk: 1, hp: 2, maxHp: 2, keywords: [], canAttack: true }];
+  pub.players.p2.board = [
+    { uid: "b", id: "s1-07", atk: 1, hp: 4, maxHp: 4, keywords: ["guard"], canAttack: false },
+    { uid: "c", id: "s1-05", atk: 2, hp: 3, maxHp: 3, keywords: [], canAttack: false },
+  ];
+  const t = R.attackTargets(pub, "p1", "a");
+  if (t.length !== 1 || t[0].uid !== "b") stats.errors.push("guard rule broken " + JSON.stringify(t));
+}
+out.textContent = "DONE " + JSON.stringify({ ...stats, avgTurns: (stats.turns / stats.games).toFixed(1) }, null, 1);
+</script>

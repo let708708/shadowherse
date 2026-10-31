@@ -1,0 +1,36 @@
+{
+  "rules": {
+    "rooms": {
+      "$room": {
+        ".write": "auth != null && data.exists() && data.child('meta/createdAt').val() < now - 86400000",
+        "meta": {
+          ".read": "auth != null",
+          ".write": "auth != null && (!data.exists() || data.child('host').val() === auth.uid)"
+        },
+        "members": {
+          ".read": "auth != null",
+          "$uid": {
+            ".write": "auth != null && $uid === auth.uid"
+          }
+        },
+        "seats": {
+          ".read": "auth != null",
+          "$seat": {
+            ".write": "auth != null && ($seat === 'p1' || $seat === 'p2') && (!data.exists() || data.val() === auth.uid)",
+            ".validate": "newData.val() === auth.uid"
+          }
+        },
+        "public": {
+          ".read": "auth != null",
+          ".write": "auth != null && (root.child('rooms/' + $room + '/seats/p1').val() === auth.uid || root.child('rooms/' + $room + '/seats/p2').val() === auth.uid)"
+        },
+        "private": {
+          "$seat": {
+            ".read": "auth != null && (root.child('rooms/' + $room + '/seats/' + $seat).val() === auth.uid || (root.child('rooms/' + $room + '/members/' + auth.uid).exists() && root.child('rooms/' + $room + '/seats/p1').val() !== auth.uid && root.child('rooms/' + $room + '/seats/p2').val() !== auth.uid))",
+            ".write": "auth != null && root.child('rooms/' + $room + '/seats/' + $seat).val() === auth.uid"
+          }
+        }
+      }
+    }
+  }
+}

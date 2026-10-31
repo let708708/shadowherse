@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#1b1530">
+  <title>ShadowHerse</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <main id="app">
+    <section id="screen-title" class="screen">
+      <h1 class="logo">Shadow<span>Herse</span></h1>
+      <p class="sub">ハス君カードバトル</p>
+      <label class="field">名前
+        <input id="name" maxlength="12" autocomplete="nickname" placeholder="例：社長">
+      </label>
+      <button id="btn-create" class="btn primary">部屋を作る</button>
+      <div class="join">
+        <input id="code" inputmode="numeric" maxlength="4" placeholder="合言葉（4桁）">
+        <button id="btn-join" class="btn">入る</button>
+      </div>
+      <button id="btn-rejoin" class="btn" hidden></button>
+      <hr>
+      <button id="btn-local" class="btn">1台で遊ぶ（交代しながら）</button>
+    </section>
+
+    <section id="screen-local" class="screen" hidden>
+      <h2>1台で遊ぶ</h2>
+      <label class="field">プレイヤー1 <input id="local-name1" maxlength="12"></label>
+      <label class="field">デッキ <select id="local-deck1"></select></label>
+      <label class="field">プレイヤー2 <input id="local-name2" maxlength="12"></label>
+      <label class="field">デッキ <select id="local-deck2"></select></label>
+      <button id="btn-local-start" class="btn primary">はじめる</button>
+      <button id="btn-local-back" class="btn">戻る</button>
+    </section>
+
+    <section id="screen-lobby" class="screen" hidden>
+      <h2>部屋</h2>
+      <div id="lobby-body"></div>
+    </section>
+
+    <section id="screen-game" hidden></section>
+  </main>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

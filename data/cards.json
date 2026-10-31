@@ -1,0 +1,62 @@
+{
+  "series": {
+    "s1": "ハス君シリーズ part1",
+    "s2": "ハス君シリーズ②",
+    "s3": "ハス君といっしょ③",
+    "s4": "ハス君シリーズ④",
+    "s5": "いつもいっしょ！パート(1)",
+    "s6": "ハス君シリーズ⑤",
+    "s7": "ハス君シリーズ⑥",
+    "s8": "ハスくんと仲間たち",
+    "s9": "ハス君といっしょ part.7"
+  },
+  "cards": [
+    { "id": "s1-01", "img": "img/cards/s1/507134614.png", "name": "了解！", "type": "follower", "cost": 1, "atk": 1, "hp": 2, "text": "" },
+    { "id": "s1-04", "img": "img/cards/s1/507134617.png", "name": "元気？", "type": "follower", "cost": 1, "atk": 2, "hp": 1, "text": "" },
+    { "id": "s2-16", "img": "img/cards/s2/650352765.png", "name": "がんばるんば", "type": "follower", "cost": 1, "atk": 1, "hp": 1, "keywords": ["rush"], "text": "速攻" },
+    { "id": "s4-04", "img": "img/cards/s4/744223940.png", "name": "すまん 猛反省してる！", "type": "follower", "cost": 1, "atk": 1, "hp": 2, "keywords": ["guard"], "text": "ガード" },
+    { "id": "s7-17", "img": "img/cards/s7/796167817.png", "name": "花を贈るよ！", "type": "spell", "cost": 1, "effects": [{ "on": "play", "do": "heal", "to": "myLeader", "value": 3 }], "text": "自分のリーダーを3回復" },
+    { "id": "s6-23", "img": "img/cards/s6/786875975.png", "name": "ごまかすな！", "type": "spell", "cost": 1, "choose": "enemyFollower", "effects": [{ "on": "play", "do": "damage", "to": "chosen", "value": 2 }], "text": "相手のフォロワー1体に2ダメージ" },
+    { "id": "s6-04", "img": "img/cards/s6/786875956.png", "name": "やる気倍増！", "type": "spell", "cost": 1, "choose": "allyFollower", "effects": [{ "on": "play", "do": "buff", "to": "chosen", "atk": 2, "hp": 1 }], "text": "自分のフォロワー1体を+2/+1" },
+
+    { "id": "s1-02", "img": "img/cards/s1/507134615.png", "name": "いつも感謝してるよ", "type": "follower", "cost": 2, "atk": 2, "hp": 2, "effects": [{ "on": "play", "do": "heal", "to": "myLeader", "value": 2 }], "text": "登場時：自分のリーダーを2回復" },
+    { "id": "s1-05", "img": "img/cards/s1/507134618.png", "name": "こんにちは", "type": "follower", "cost": 2, "atk": 2, "hp": 3, "text": "" },
+    { "id": "s1-08", "img": "img/cards/s1/507134621.png", "name": "さびしいなぁ", "type": "follower", "cost": 2, "atk": 1, "hp": 1, "effects": [{ "on": "play", "do": "draw", "value": 1 }], "text": "登場時：カードを1枚引く" },
+    { "id": "s1-07", "img": "img/cards/s1/507134620.png", "name": "疲れたよぅ", "type": "follower", "cost": 2, "atk": 1, "hp": 4, "keywords": ["guard"], "text": "ガード" },
+    { "id": "s3-01", "img": "img/cards/s3/705381865.png", "name": "OK！", "type": "follower", "cost": 2, "atk": 3, "hp": 2, "text": "" },
+    { "id": "s6-16", "img": "img/cards/s6/786875968.png", "name": "俺のことは置いていけ", "type": "follower", "cost": 2, "atk": 2, "hp": 1, "effects": [{ "on": "death", "do": "damage", "to": "enemyLeader", "value": 2 }], "text": "退場時：相手のリーダーに2ダメージ" },
+    { "id": "s2-12", "img": "img/cards/s2/650352761.png", "name": "Happy Birthday", "type": "spell", "cost": 2, "effects": [{ "on": "play", "do": "buff", "to": "allAllies", "atk": 1, "hp": 1 }], "text": "自分のフォロワーすべてを+1/+1" },
+    { "id": "s4-23", "img": "img/cards/s4/744223959.png", "name": "準備完了！", "type": "spell", "cost": 2, "effects": [{ "on": "play", "do": "draw", "value": 2 }], "text": "カードを2枚引く" },
+    { "id": "s5-17", "img": "img/cards/s5/772622449.png", "name": "必ず回復する！", "type": "spell", "cost": 2, "effects": [{ "on": "play", "do": "heal", "to": "myLeader", "value": 4 }, { "on": "play", "do": "draw", "value": 1 }], "text": "自分のリーダーを4回復。カードを1枚引く" },
+    { "id": "s8-05", "img": "img/cards/s8/820777877.png", "name": "もっと攻めろ！", "type": "spell", "cost": 2, "choose": "allyFollower", "effects": [{ "on": "play", "do": "buff", "to": "chosen", "atk": 2, "hp": 2 }], "text": "自分のフォロワー1体を+2/+2" },
+
+    { "id": "s1-06", "img": "img/cards/s1/507134619.png", "name": "お腹すいたよ", "type": "follower", "cost": 3, "atk": 3, "hp": 4, "text": "" },
+    { "id": "s3-09", "img": "img/cards/s3/705381873.png", "name": "ラジャー!!", "type": "follower", "cost": 3, "atk": 3, "hp": 2, "keywords": ["rush"], "text": "速攻" },
+    { "id": "s6-12", "img": "img/cards/s6/786875964.png", "name": "喝！", "type": "follower", "cost": 3, "atk": 2, "hp": 2, "choose": "enemyFollower", "effects": [{ "on": "play", "do": "damage", "to": "chosen", "value": 2 }], "text": "登場時：相手のフォロワー1体に2ダメージ" },
+    { "id": "s7-20", "img": "img/cards/s7/796167820.png", "name": "チルタイム！", "type": "follower", "cost": 3, "atk": 2, "hp": 5, "keywords": ["guard"], "text": "ガード" },
+    { "id": "s8-25", "img": "img/cards/s8/820777897.png", "name": "ご乱心", "type": "follower", "cost": 3, "atk": 5, "hp": 1, "text": "" },
+    { "id": "s8-08", "img": "img/cards/s8/820777880.png", "name": "荒波にもまれてこい！", "type": "spell", "cost": 3, "choose": "enemy", "effects": [{ "on": "play", "do": "damage", "to": "chosen", "value": 3 }], "text": "相手のフォロワー1体か相手のリーダーに3ダメージ" },
+    { "id": "s7-01", "img": "img/cards/s7/796167801.png", "name": "文殊の知恵", "type": "spell", "cost": 3, "effects": [{ "on": "play", "do": "summon", "card": "token-chibi", "count": 3 }], "text": "「ちびハス」を3体出す" },
+    { "id": "s5-13", "img": "img/cards/s5/772622445.png", "name": "壊す (^-)", "type": "spell", "cost": 3, "choose": "enemyFollower", "effects": [{ "on": "play", "do": "damage", "to": "chosen", "value": 4 }], "text": "相手のフォロワー1体に4ダメージ" },
+
+    { "id": "s1-13", "img": "img/cards/s1/507134626.png", "name": "もうひと踏ん張り", "type": "follower", "cost": 4, "atk": 4, "hp": 5, "text": "" },
+    { "id": "s5-15", "img": "img/cards/s5/772622447.png", "name": "まかせろ", "type": "follower", "cost": 4, "atk": 3, "hp": 5, "keywords": ["guard"], "text": "ガード" },
+    { "id": "s7-05", "img": "img/cards/s7/796167805.png", "name": "打倒！", "type": "follower", "cost": 4, "atk": 4, "hp": 3, "keywords": ["rush"], "text": "速攻" },
+    { "id": "s8-32", "img": "img/cards/s8/820777904.png", "name": "がんばろう", "type": "follower", "cost": 4, "atk": 3, "hp": 3, "effects": [{ "on": "play", "do": "buff", "to": "otherAllies", "atk": 1, "hp": 1 }], "text": "登場時：他の自分のフォロワーすべてを+1/+1" },
+    { "id": "s5-04", "img": "img/cards/s5/772622436.png", "name": "徳川埋蔵金", "type": "spell", "cost": 4, "effects": [{ "on": "play", "do": "draw", "value": 3 }], "text": "カードを3枚引く" },
+    { "id": "s9-14", "img": "img/cards/s9/847773246.png", "name": "一触即発！", "type": "spell", "cost": 4, "effects": [{ "on": "play", "do": "damage", "to": "allFollowers", "value": 2 }], "text": "お互いのフォロワーすべてに2ダメージ" },
+
+    { "id": "s5-05", "img": "img/cards/s5/772622437.png", "name": "主役登場！", "type": "follower", "cost": 5, "atk": 5, "hp": 6, "text": "" },
+    { "id": "s3-12", "img": "img/cards/s3/705381876.png", "name": "会社を辞めて企業する", "type": "follower", "cost": 5, "atk": 4, "hp": 4, "effects": [{ "on": "death", "do": "summon", "card": "token-chibi", "count": 2 }], "text": "退場時：「ちびハス」を2体出す" },
+    { "id": "s8-38", "img": "img/cards/s8/820777910.png", "name": "旅、行きたいな", "type": "follower", "cost": 5, "atk": 4, "hp": 5, "effects": [{ "on": "play", "do": "draw", "value": 1 }], "text": "登場時：カードを1枚引く" },
+    { "id": "s4-14", "img": "img/cards/s4/744223950.png", "name": "地の獄！", "type": "spell", "cost": 5, "effects": [{ "on": "play", "do": "damage", "to": "allEnemyFollowers", "value": 3 }], "text": "相手のフォロワーすべてに3ダメージ" },
+    { "id": "s5-06", "img": "img/cards/s5/772622438.png", "name": "全員集合！", "type": "spell", "cost": 5, "effects": [{ "on": "play", "do": "summon", "card": "token-chibi", "count": 2 }, { "on": "play", "do": "buff", "to": "allAllies", "atk": 1, "hp": 1 }], "text": "「ちびハス」を2体出す。その後、自分のフォロワーすべてを+1/+1" },
+
+    { "id": "s6-11", "img": "img/cards/s6/786875963.png", "name": "合体", "type": "follower", "cost": 6, "atk": 6, "hp": 7, "text": "" },
+    { "id": "s9-32", "img": "img/cards/s9/847773264.png", "name": "Checkmate!", "type": "spell", "cost": 6, "effects": [{ "on": "play", "do": "damage", "to": "enemyLeader", "value": 5 }], "text": "相手のリーダーに5ダメージ" },
+    { "id": "s4-15", "img": "img/cards/s4/744223951.png", "name": "逆転劇", "type": "follower", "cost": 7, "atk": 5, "hp": 6, "effects": [{ "on": "play", "do": "damage", "to": "allEnemyFollowers", "value": 2 }], "text": "登場時：相手のフォロワーすべてに2ダメージ" },
+    { "id": "s9-09", "img": "img/cards/s9/847773241.png", "name": "俯瞰せよ！", "type": "follower", "cost": 8, "atk": 8, "hp": 8, "keywords": ["guard"], "text": "ガード" },
+
+    { "id": "token-chibi", "img": "img/cards/s2/650352751.png", "name": "ちびハス", "type": "follower", "cost": 1, "atk": 1, "hp": 1, "token": true, "text": "トークン" }
+  ]
+}

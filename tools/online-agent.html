@@ -1,0 +1,98 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>online agent</title>
+<style>iframe { width: 390px; height: 844px; border: 0; }</style>
+<iframe id="f" src="../index.html"></iframe>
+<script>
+// オンライン対戦の自動テスト用。1つのブラウザ（オリジン）で1人分を自動操作する。
+// ?role=host|guest|watch。ホストの合言葉は親ページ経由で受け取る。結果は POST /__log に送る。
+const role = new URLSearchParams(location.search).get("role");
+const f = document.getElementById("f");
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+const log = (msg) => fetch("http://127.0.0.1:8771/__log", { method: "POST", body: `${role}: ${msg}` }).catch(() => {});
+let doc, code = "";
+const $ = (s) => doc.querySelector(s);
+window.addEventListener("message", (e) => { if (e.data && e.data.code) code = e.data.code; });
+
+async function until(fn, ms = 20000, what = "") {
+  const t0 = Date.now();
+  while (Date.now() - t0 < ms) { const v = fn(); if (v) return v; await wait(150); }
+  throw new Error("timeout: " + what);
+}
+
+f.onload = async () => {
+  const w = f.contentWindow;
+  doc = f.contentDocument;
+  w.addEventListener("error", (e) => log("ERROR " + e.message));
+  w.addEventListener("unhandledrejection", (e) => log("REJECT " + e.reason));
+  w.alert = (m) => log("ALERT " + m);
+  w.confirm = () => true;
+  try {
+    await until(() => !$("#screen-title").hidden, 10000, "title");
+    $("#name").value = { host: "社長", guest: "部長", watch: "課長" }[role];
+    if (role === "host") {
+      $("#btn-create").click();
+      const c = await until(() => $(".code") && $(".code").textContent.trim(), 20000, "room code");
+      log("room " + c);
+      parent.postMessage({ code: c }, "*");
+    } else {
+      await until(() => code, 30000, "code from parent");
+      if (role === "watch") await wait(4000); // 対戦相手が先に席に着くのを待つ
+      $("#name").value = { guest: "部長", watch: "課長" }[role];
+      $("#code").value = code;
+      $("#btn-join").click();
+      await until(() => !$("#screen-lobby").hidden || !$("#screen-game").hidden, 20000, "lobby");
+    }
+    if (role !== "watch") {
+      await until(() => $("[data-lobby=ready]"), 20000, "ready button");
+      // 2人目は速攻デッキにしてみる
+      if (role === "guest") { const r = $("input[value=aggro]"); r.checked = true; r.dispatchEvent(new Event("change", { bubbles: true })); await wait(800); }
+      $("[data-lobby=ready]").click();
+      log("ready");
+    }
+    if (role === "host") {
+      const b = await until(() => { const b = $("[data-lobby=start]"); return b && !b.disabled && b; }, 30000, "start enabled");
+      b.click();
+      log("start clicked");
+    }
+    await until(() => !$("#screen-game").hidden && $(".game"), 30000, "game screen");
+    log("in game");
+    let sawBothHands = false, actions = 0;
+    const t0 = Date.now();
+    while (Date.now() - t0 < 150000) {
+      await wait(200);
+      if ($(".result")) { log("RESULT " + $(".result").textContent); break; }
+      if (role === "watch") {
+        const opp = doc.querySelectorAll(".hand.opp .card").length, me = doc.querySelectorAll(".hand.me .card").length;
+        if (opp && me && !sawBothHands) { sawBothHands = true; log(`watch sees hands top=${opp} bottom=${me}`); }
+        continue;
+      }
+      if ($("[data-act=mull-ok]")) { $("[data-act=mull-ok]").click(); log("mulligan done"); continue; }
+      const end = $("[data-act=end]");
+      if (!end || end.disabled) continue;
+      const card = $(".hand.me .card.playable");
+      if (card) {
+        card.click(); await wait(50);
+        const play = $("[data-act=play]"); if (play) play.click(); await wait(50);
+        if ($(".prompt") && $(".prompt").textContent.includes("対象")) { const t = $(".targetable"); if (t) t.click(); }
+        actions++; await wait(400); continue;
+      }
+      const ready = $(".board.me .card.ready");
+      if (ready) {
+        ready.click(); await wait(50);
+        const t = $(".targetable");
+        if (t) { t.click(); actions++; await wait(400); continue; }
+        const c = $(".panel [data-act=close]"); if (c) c.click();
+      }
+      // 自分の状態を記録してからターン終了
+      const bars = [...doc.querySelectorAll(".bar")].map((b) => b.querySelector(".hp-big").textContent).join(" vs ");
+      log(`end turn (hp ${bars}, actions ${actions})`);
+      end.click(); await wait(600);
+    }
+    if (role === "watch" && !sawBothHands) log("FAIL watcher never saw both hands");
+    log("finished");
+  } catch (e) {
+    log("FAIL " + e.message);
+  }
+};
+</script>

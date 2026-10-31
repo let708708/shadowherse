@@ -1,0 +1,90 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>flow test</title>
+<style>
+  body { margin: 0; background: #000; }
+  iframe { width: 390px; height: 844px; border: 0; display: block; }
+  #out { position: fixed; left: 400px; top: 0; color: #0f0; font: 12px monospace; white-space: pre-wrap; }
+</style>
+<iframe id="f" src="../index.html"></iframe>
+<pre id="out">running</pre>
+<script>
+// 画面のボタンを自動で押して「1台で遊ぶ」を進めるテスト。
+// ?turns=N で N ターン目で止める（途中画面の確認用）。?shot=title|mull|modal|target でその画面で止める。
+const q = new URLSearchParams(location.search);
+const stopTurns = Number(q.get("turns") || 999);
+const shot = q.get("shot") || "";
+const out = document.getElementById("out");
+const f = document.getElementById("f");
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+const errors = [];
+let doc;
+const $ = (s) => doc.querySelector(s);
+const $$ = (s) => [...doc.querySelectorAll(s)];
+const click = async (el) => { if (!el) throw new Error("no element"); el.click(); await wait(30); };
+
+f.onload = async () => {
+  const w = f.contentWindow;
+  doc = f.contentDocument;
+  w.addEventListener("error", (e) => errors.push(e.message));
+  w.addEventListener("unhandledrejection", (e) => errors.push(String(e.reason)));
+  w.alert = (m) => errors.push("alert: " + m);
+  w.confirm = () => true;
+  try {
+    await wait(500);
+    if (shot === "title") return done("title");
+    await click($("#btn-local"));
+    await click($("#btn-local-start"));
+    let turns = 0, plays = 0, attacks = 0;
+    for (let step = 0; step < 3000; step++) {
+      if ($("[data-act=handoff]")) { await click($("[data-act=handoff]")); continue; }
+      if ($("[data-act=mull-ok]")) {
+        if (shot === "mull") { await click($("[data-mull='0']")); return done("mull"); }
+        await click($("[data-act=mull-ok]")); continue;
+      }
+      if ($(".result")) break;
+      if (turns >= stopTurns) {
+        if (shot === "modal") { await click($(".hand.me .card")); }
+        if (shot === "target") { const r = $(".board.me .card.ready"); if (r) await click(r); }
+        return done(`stopped at turn ${turns}`);
+      }
+      // 手札を出す
+      const card = $(".hand.me .card.playable");
+      if (card) {
+        await click(card);
+        const play = $("[data-act=play]");
+        if (!play) throw new Error("play button missing");
+        await click(play);
+        const t = $(".targetable");
+        if ($(".prompt") && $(".prompt").textContent.includes("対象")) {
+          if (!t) throw new Error("targeting without targets");
+          await click(t);
+        }
+        plays++;
+        continue;
+      }
+      // 攻撃する
+      const ready = $(".board.me .card.ready");
+      if (ready) {
+        await click(ready);
+        const t = $(".targetable");
+        if (t) { await click(t); attacks++; continue; }
+        // 攻撃先がないなら詳細が開いているので閉じる
+        if ($("[data-act=close]")) await click($(".panel [data-act=close]"));
+        if ($("[data-act=cancel]")) await click($("[data-act=cancel]"));
+      }
+      const end = $("[data-act=end]");
+      if (end && !end.disabled) { await click(end); turns++; continue; }
+      throw new Error("stuck: " + doc.querySelector(".mid").textContent);
+    }
+    done(`finished: turns=${turns} plays=${plays} attacks=${attacks} result=${$(".result") && $(".result").textContent}`);
+  } catch (e) {
+    errors.push("TEST: " + e.message);
+    done("failed");
+  }
+};
+
+function done(msg) {
+  out.textContent = "DONE " + msg + "\nerrors=" + JSON.stringify(errors, null, 1);
+}
+</script>
